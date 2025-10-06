@@ -1,0 +1,5 @@
+account_id,reason,flagged_date,severity
+1234,Manual review - excessive flipping,2024-01-15,high
+5678,Reported by users,2024-02-20,medium
+9101,Suspicious bidding patterns,2024-03-10,high
+1121,Price manipulation suspected,2024-03-25,critical

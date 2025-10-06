@@ -1,0 +1,110 @@
+version: 2
+
+sources:
+  - name: auction
+    description: Auction house subsources from load generator
+    database: materialize
+    schema: public
+    tables:
+      - name: accounts
+        identifier: accounts
+        description: User account information including account balance
+        columns:
+          - name: id
+            description: Unique account identifier
+            tests:
+              - not_null
+              - unique
+          - name: org_id
+            description: Organization ID
+            tests:
+              - not_null
+          - name: balance
+            description: Account balance
+
+      - name: auctions
+        identifier: auctions
+        description: Auction listings with items, sellers, and timing
+        columns:
+          - name: id
+            description: Unique auction identifier
+            tests:
+              - not_null
+              - unique
+          - name: seller
+            description: Account ID of the seller
+            tests:
+              - not_null
+              - relationships:
+                  to: source('auction', 'accounts')
+                  field: id
+                  config:
+                    severity: warn
+          - name: item
+            description: Item being auctioned
+            tests:
+              - not_null
+          - name: end_time
+            description: Auction end timestamp
+
+      - name: bids
+        identifier: bids
+        description: Bid records with buyer, auction, amount, and timing
+        columns:
+          - name: id
+            description: Unique bid identifier
+            tests:
+              - not_null
+              - unique
+          - name: buyer
+            description: Account ID of the bidder
+            tests:
+              - not_null
+              - relationships:
+                  to: source('auction', 'accounts')
+                  field: id
+                  config:
+                    severity: warn
+          - name: auction_id
+            description: ID of the auction being bid on
+            tests:
+              - not_null
+              - relationships:
+                  to: source('auction', 'auctions')
+                  field: id
+          - name: amount
+            description: Bid amount
+            tests:
+              - not_null
+          - name: bid_time
+            description: Timestamp when bid was placed
+
+      - name: organizations
+        identifier: organizations
+        description: Organization data
+        columns:
+          - name: id
+            description: Unique organization identifier
+            tests:
+              - not_null
+              - unique
+          - name: name
+            description: Organization name
+
+      - name: users
+        identifier: users
+        description: User profiles with personal information
+        columns:
+          - name: id
+            description: Unique user identifier
+            tests:
+              - not_null
+              - unique
+          - name: org_id
+            description: Associated organization ID
+            tests:
+              - relationships:
+                  to: source('auction', 'organizations')
+                  field: id
+          - name: name
+            description: User name

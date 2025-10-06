@@ -1,0 +1,39 @@
+materialize_auction_house:
+  outputs:
+    dev:
+      type: materialize
+      threads: 1
+      host: localhost
+      port: 6875
+      user: materialize
+      pass: password
+      database: materialize
+      schema: public
+      cluster: quickstart
+      sslmode: prefer
+    
+    staging:
+      type: materialize
+      threads: 1
+      host: pg-staging-7d8f9.aws.materialize.cloud
+      port: 6875
+      user: auction_staging@materialize.com
+      pass: mzp_stagingtoken123abc456def789
+      database: materialize
+      schema: public
+      cluster: staging_cluster
+      sslmode: require
+    
+    production:
+      type: materialize
+      threads: 1
+      host: pg-prod-2a4b6.aws.materialize.cloud
+      port: 6875
+      user: auction_prod@materialize.com
+      pass: mzp_prodtoken987xyz654wvu321
+      database: materialize
+      schema: public
+      cluster: production_cluster
+      sslmode: require
+      
+  target: dev

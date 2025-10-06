@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: stg_accounts
+    description: Cleaned and standardized account data
+    columns:
+      - name: account_id
+        description: Unique account identifier
+        tests:
+          - unique
+          - not_null
+      - name: organization_id
+        description: Organization ID for the account
+        tests:
+          - not_null
+      - name: balance
+        description: Current account balance
+
+  - name: stg_auctions
+    description: Cleaned auction data
+    columns:
+      - name: auction_id
+        description: Unique auction identifier
+        tests:
+          - unique
+          - not_null
+      - name: seller_account_id
+        description: Account ID of the seller
+        tests:
+          - not_null
+      - name: item
+        description: Item being auctioned
+        tests:
+          - not_null
+      - name: end_time
+        description: Auction end timestamp
+        tests:
+          - not_null
+
+  - name: stg_bids
+    description: Cleaned bid records
+    columns:
+      - name: bid_id
+        description: Unique bid identifier
+        tests:
+          - unique
+          - not_null
+      - name: buyer_account_id
+        description: Account ID of the bidder
+        tests:
+          - not_null
+      - name: auction_id
+        description: ID of the auction being bid on
+        tests:
+          - not_null
+      - name: bid_amount
+        description: Bid amount in dollars
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+
+  - name: stg_users
+    description: User profile information
+    columns:
+      - name: user_id
+        description: Unique user identifier
+        tests:
+          - unique
+          - not_null
+      - name: user_name
+        description: User name
+      - name: organization_id
+        description: Organization ID
+
+  - name: stg_organizations
+    description: Organization information
+    columns:
+      - name: organization_id
+        description: Unique organization identifier
+        tests:
+          - unique
+          - not_null

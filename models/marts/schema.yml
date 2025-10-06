@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: fct_auction_flippers
+    description: Identifies and categorizes accounts that flip auction items for profit
+    columns:
+      - name: account_id
+        description: Unique account identifier
+        tests:
+          - unique
+          - not_null
+      - name: flipper_category
+        description: Classification of flipper behavior
+        tests:
+          - accepted_values:
+              values: ['high_volume_flipper', 'moderate_flipper', 'casual_flipper', 'occasional_flipper']
+      - name: total_flips
+        description: Total number of flips
+        tests:
+          - not_null
+
+  - name: metrics_auction_health
+    description: Hourly and daily metrics for auction platform health monitoring
+    columns:
+      - name: metric_hour
+        description: Hour for which metrics are calculated
+        tests:
+          - not_null
+      - name: bids_per_bidder
+        description: Average bids per active bidder
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: daily_gmv
+        description: Total gross merchandise value for the day
+
+  - name: realtime_suspicious_activity
+    description: Real-time detection of suspicious account behavior
+    columns:
+      - name: account_id
+        description: Account flagged for suspicious activity
+      - name: alert_type
+        description: Type of suspicious activity detected
+        tests:
+          - accepted_values:
+              values: ['rapid_flipper_and_bidder', 'rapid_flipper', 'excessive_bidder', null]
+              config:
+                severity: warn

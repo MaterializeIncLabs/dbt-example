@@ -1,0 +1,115 @@
+selectors:
+  - name: default
+    description: Default selector - excludes sources and sinks
+    definition:
+      method: fqn
+      value: "*"
+      exclude:
+        - method: config.materialized
+          value: source
+        - method: tag
+          value: source
+        - method: config.materialized
+          value: sink
+        - method: path
+          value: "models/sinks/*"
+        - method: path
+          value: "models/sources/*"
+
+  - name: sources_only
+    description: Only create/refresh sources
+    definition:
+      union:
+        - method: config.materialized
+          value: source
+        - method: tag
+          value: source
+        - method: path
+          value: "models/sources/*"
+
+  - name: sinks_only
+    description: Only create/refresh sinks
+    definition:
+      union:
+        - method: config.materialized
+          value: sink
+        - method: path
+          value: "models/sinks/*"
+
+  - name: transformations
+    description: Only staging, intermediate, and marts (no sources or sinks)
+    definition:
+      union:
+        - method: path
+          value: "models/staging/*"
+        - method: path
+          value: "models/intermediate/*"
+        - method: path
+          value: "models/marts/*"
+
+  - name: staging_only
+    description: Only staging models
+    definition:
+      method: path
+      value: "models/staging/*"
+
+  - name: intermediate_only
+    description: Only intermediate models
+    definition:
+      method: path
+      value: "models/intermediate/*"
+
+  - name: marts_only
+    description: Only mart models
+    definition:
+      method: path
+      value: "models/marts/*"
+
+  - name: flippers
+    description: Models related to flipper detection
+    definition:
+      union:
+        - method: fqn
+          value: "*flippers*"
+        - method: fqn
+          value: "*flips*"
+        - method: fqn
+          value: "*winning_bids*"
+
+  - name: metrics
+    description: Models related to metrics and monitoring
+    definition:
+      union:
+        - method: fqn
+          value: "*metrics*"
+        - method: fqn
+          value: "*suspicious*"
+        - method: fqn
+          value: "*health*"
+
+  - name: no_sinks
+    description: Everything except sinks
+    definition:
+      method: fqn
+      value: "*"
+      exclude:
+        - method: config.materialized
+          value: sink
+        - method: path
+          value: "models/sinks/*"
+
+  - name: indexed_views
+    description: Only views with indexes
+    definition:
+      intersection:
+        - method: config.materialized
+          value: view
+        - method: config.indexes
+          operator: IS
+          value: NOT NULL
+
+  - name: materialized_views
+    description: Only materialized views
+    definition:
+      method: config.materialized
+      value: materialized_view

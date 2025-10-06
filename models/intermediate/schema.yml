@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: int_winning_bids
+    description: Determines winning bid for each closed auction
+    columns:
+      - name: auction_id
+        description: Unique auction identifier
+        tests:
+          - unique
+          - not_null
+      - name: winner_account_id
+        description: Account ID of the auction winner
+        tests:
+          - not_null
+      - name: winning_amount
+        description: Final winning bid amount
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+
+  - name: int_auction_flips
+    description: Identifies items bought and resold within threshold period
+    columns:
+      - name: account_id
+        description: Account performing the flip
+        tests:
+          - not_null
+      - name: time_to_flip
+        description: Time interval between purchase and resale
+      - name: item
+        description: Item that was flipped
+
+  - name: int_user_activity_summary
+    description: Aggregated user activity metrics
+    columns:
+      - name: account_id
+        description: Unique account identifier
+        tests:
+          - unique
+          - not_null
+      - name: win_rate
+        description: Ratio of auctions won to bids placed
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 AND win_rate <= 1"

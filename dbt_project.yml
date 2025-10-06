@@ -1,0 +1,37 @@
+name: 'materialize_auction_house'
+version: '1.0.0'
+config-version: 2
+
+profile: 'materialize_auction_house'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  materialize_auction_house:
+    staging:
+      +materialized: view
+      +schema: staging
+      +cluster: compute
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+      +cluster: compute
+    marts:
+      +schema: marts
+      +cluster: compute
+
+vars:
+  flipper_threshold_days: 8
+  min_profit_margin: 0.20
+  source_cluster: 'sources'
+  sink_cluster: 'sinks'
+  compute_cluster: 'compute'
