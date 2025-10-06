@@ -15,10 +15,10 @@ The project implements a real-time auction monitoring system that:
 This project showcases key Materialize features with practical examples:
 
 - **[Views](MATERIALIZE_CONCEPTS.md#views)** - Staging and intermediate transformations without storage overhead
+- **[Indexes](MATERIALIZE_CONCEPTS.md#indexes)** - Query optimization on intermediate views
 - **[Materialized Views](MATERIALIZE_CONCEPTS.md#materialized-views)** - Real-time maintained analytics in the marts layer
 - **[Sources](MATERIALIZE_CONCEPTS.md#sources)** - Load generator creating streaming auction data
 - **[Sinks](MATERIALIZE_CONCEPTS.md#sinks)** - Kafka exports with DEBEZIUM envelope format
-- **[Indexes](MATERIALIZE_CONCEPTS.md#indexes)** - Query optimization on intermediate views
 
 📚 **See [MATERIALIZE_CONCEPTS.md](MATERIALIZE_CONCEPTS.md) for detailed explanations and examples of each concept.**
 

@@ -4,10 +4,10 @@ This guide explains how key Materialize concepts are demonstrated in this dbt pr
 
 ## Table of Contents
 - [Views](#views)
+- [Indexes](#indexes)
 - [Materialized Views](#materialized-views)
 - [Sources](#sources)
 - [Sinks](#sinks)
-- [Indexes](#indexes)
 
 ---
 
@@ -47,6 +47,54 @@ More sophisticated transformations that benefit from indexed access:
 - [`models/intermediate/int_auction_flips.sql`](models/intermediate/int_auction_flips.sql) - Self-joins with temporal logic
 
 **Key Learning:** Views are perfect for transformations that don't require persistence, saving compute and storage resources.
+
+---
+
+## Indexes
+
+**Materialize Documentation:** [Indexes](https://materialize.com/docs/sql/create-index/)
+
+Indexes on views enable efficient point lookups and improve join performance. Materialize automatically maintains indexes as data changes.
+
+### Examples in This Project:
+
+#### Indexed Intermediate View
+- [`models/intermediate/int_winning_bids.sql`](models/intermediate/int_winning_bids.sql) - **Multi-column indexing strategy**
+
+```sql
+{{ config(
+    materialized='view',
+    indexes=[
+      {'columns': ['auction_id']},        # Primary lookup
+      {'columns': ['winner_account_id']}, # Join optimization
+      {'columns': ['seller_account_id']}  # Join optimization
+    ]
+) }}
+```
+
+This creates three indexes:
+1. `int_winning_bids_auction_id_idx` - Fast auction lookups
+2. `int_winning_bids_winner_account_id_idx` - Optimizes buyer analysis joins
+3. `int_winning_bids_seller_account_id_idx` - Optimizes seller analysis joins
+
+#### Verifying Indexes
+```sql
+-- Query to see all indexes on a view
+SELECT name, on_id 
+FROM mz_indexes 
+WHERE on_id = (
+    SELECT id FROM mz_relations 
+    WHERE name = 'int_winning_bids'
+);
+```
+
+#### Performance Impact
+The indexed `int_winning_bids` view is referenced by:
+- `int_user_activity_summary` - Joins on winner_account_id
+- `int_auction_flips` - Joins on auction_id
+- Multiple mart models - Various join patterns
+
+**Key Learning:** Indexes dramatically improve query performance for views, especially for joins and filtered queries, with Materialize maintaining them automatically.
 
 ---
 
@@ -175,54 +223,6 @@ vars:
 ```
 
 **Key Learning:** Sinks enable real-time data export, creating continuous pipelines that push changes to downstream systems as they occur.
-
----
-
-## Indexes
-
-**Materialize Documentation:** [Indexes](https://materialize.com/docs/sql/create-index/)
-
-Indexes on views enable efficient point lookups and improve join performance. Materialize automatically maintains indexes as data changes.
-
-### Examples in This Project:
-
-#### Indexed Intermediate View
-- [`models/intermediate/int_winning_bids.sql`](models/intermediate/int_winning_bids.sql) - **Multi-column indexing strategy**
-
-```sql
-{{ config(
-    materialized='view',
-    indexes=[
-      {'columns': ['auction_id']},        # Primary lookup
-      {'columns': ['winner_account_id']}, # Join optimization
-      {'columns': ['seller_account_id']}  # Join optimization
-    ]
-) }}
-```
-
-This creates three indexes:
-1. `int_winning_bids_auction_id_idx` - Fast auction lookups
-2. `int_winning_bids_winner_account_id_idx` - Optimizes buyer analysis joins
-3. `int_winning_bids_seller_account_id_idx` - Optimizes seller analysis joins
-
-#### Verifying Indexes
-```sql
--- Query to see all indexes on a view
-SELECT name, on_id 
-FROM mz_indexes 
-WHERE on_id = (
-    SELECT id FROM mz_relations 
-    WHERE name = 'int_winning_bids'
-);
-```
-
-#### Performance Impact
-The indexed `int_winning_bids` view is referenced by:
-- `int_user_activity_summary` - Joins on winner_account_id
-- `int_auction_flips` - Joins on auction_id
-- Multiple mart models - Various join patterns
-
-**Key Learning:** Indexes dramatically improve query performance for views, especially for joins and filtered queries, with Materialize maintaining them automatically.
 
 ---
 
