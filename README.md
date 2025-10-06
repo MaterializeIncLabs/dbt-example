@@ -10,6 +10,18 @@ The project implements a real-time auction monitoring system that:
 - Identifies suspicious account activity
 - Exports alerts and metrics to Kafka for downstream consumption
 
+## Materialize Concepts Demonstrated
+
+This project showcases key Materialize features with practical examples:
+
+- **[Views](MATERIALIZE_CONCEPTS.md#views)** - Staging and intermediate transformations without storage overhead
+- **[Materialized Views](MATERIALIZE_CONCEPTS.md#materialized-views)** - Real-time maintained analytics in the marts layer
+- **[Sources](MATERIALIZE_CONCEPTS.md#sources)** - Load generator creating streaming auction data
+- **[Sinks](MATERIALIZE_CONCEPTS.md#sinks)** - Kafka exports with DEBEZIUM envelope format
+- **[Indexes](MATERIALIZE_CONCEPTS.md#indexes)** - Query optimization on intermediate views
+
+📚 **See [MATERIALIZE_CONCEPTS.md](MATERIALIZE_CONCEPTS.md) for detailed explanations and examples of each concept.**
+
 ## Quick Start with Docker
 
 ### Prerequisites
@@ -211,23 +223,25 @@ dbt run --selector metrics --profiles-dir . --profile materialize_auction_house
 
 ## Key Features Demonstrated
 
-### Materialize-Specific SQL
-- Materialized views with incremental maintenance
-- Indexed views for query performance
-- Kafka sinks with DEBEZIUM envelope format
-- Streaming aggregations and window functions
+### Materialize-Specific Features
+- **Views**: Efficient transformations without persistence ([staging/](models/staging/), [intermediate/](models/intermediate/))
+- **Materialized Views**: Incrementally maintained results ([marts/](models/marts/))
+- **Indexes**: Multi-column indexes for join optimization ([int_winning_bids](models/intermediate/int_winning_bids.sql))
+- **Sources**: Load generator for streaming data ([auction_load_generator](models/sources/auction_load_generator.sql))
+- **Sinks**: Real-time Kafka exports with DEBEZIUM envelope ([sinks/](models/sinks/))
+- **Clusters**: Workload isolation (sources, compute, sinks)
 
 ### Real-time Analytics
-- Live auction status tracking
-- Continuous flipper detection
-- Streaming health metrics
-- Real-time suspicious activity alerts
+- Live auction status tracking with window functions
+- Continuous flipper detection using self-joins
+- Streaming health metrics with hourly aggregations
+- Real-time suspicious activity alerts with pattern matching
 
 ### dbt Best Practices
-- Modular model architecture
-- Comprehensive testing
-- Clear documentation
-- Environment-specific configurations
+- Modular model architecture with clear layer separation
+- 54 data quality tests for comprehensive validation
+- Full documentation with column descriptions
+- Environment-specific configurations (dev/staging/production)
 
 ## Customization
 
@@ -235,6 +249,27 @@ Key variables in `dbt_project.yml`:
 - `flipper_threshold_days`: Days to consider for flip detection (default: 8)
 - `min_profit_margin`: Minimum profit margin for flippers (default: 0.20)
 - Cluster names for sources, compute, and sinks
+
+## Resources
+
+### Materialize Documentation
+- [Materialize Docs Home](https://materialize.com/docs/)
+- [Views](https://materialize.com/docs/sql/create-view/)
+- [Materialized Views](https://materialize.com/docs/sql/create-materialized-view/)
+- [Sources](https://materialize.com/docs/sql/create-source/)
+- [Sinks](https://materialize.com/docs/sql/create-sink/)
+- [Indexes](https://materialize.com/docs/sql/create-index/)
+- [Clusters](https://materialize.com/docs/sql/create-cluster/)
+
+### dbt Resources
+- [dbt-materialize Adapter](https://github.com/MaterializeInc/dbt-materialize)
+- [dbt Documentation](https://docs.getdbt.com/)
+- [dbt Best Practices](https://docs.getdbt.com/best-practices)
+
+### Community
+- [Materialize Community Slack](https://materialize.com/community/)
+- [Materialize Blog](https://materialize.com/blog/)
+- [GitHub Discussions](https://github.com/MaterializeInc/materialize/discussions)
 
 ## License
 
