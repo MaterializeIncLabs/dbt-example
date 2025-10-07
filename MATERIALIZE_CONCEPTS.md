@@ -39,14 +39,14 @@ SELECT
 FROM {{ source('auction', 'bids') }}
 ```
 
-#### Intermediate Layer (Complex Views with Indexes)
-More sophisticated transformations that benefit from indexed access:
+#### Intermediate Layer (Complex Views)
+More sophisticated transformations using advanced SQL features:
 
-- [`models/intermediate/int_winning_bids.sql`](models/intermediate/int_winning_bids.sql) - **Indexed view** using window functions
 - [`models/intermediate/int_user_activity_summary.sql`](models/intermediate/int_user_activity_summary.sql) - Multi-way joins and aggregations
 - [`models/intermediate/int_auction_flips.sql`](models/intermediate/int_auction_flips.sql) - Self-joins with temporal logic
+- [`models/intermediate/int_winning_bids.sql`](models/intermediate/int_winning_bids.sql) - Window functions for ranking
 
-**Key Learning:** Views are perfect for transformations that don't require persistence, saving compute and storage resources.
+**Key Learning:** Views are perfect for transformations that don't require persistence, saving compute and storage resources. When regular views are referenced by downstream materialized views or indexed views, they get compiled directly into the dataflow of those incrementally maintained views, ensuring efficient computation.
 
 ---
 
@@ -54,11 +54,11 @@ More sophisticated transformations that benefit from indexed access:
 
 **Materialize Documentation:** [Indexes](https://materialize.com/docs/sql/create-index/)
 
-Indexes on views enable efficient point lookups and improve join performance. Materialize automatically maintains indexes as data changes.
+When you add an index to a view in Materialize, you're instructing Materialize to incrementally maintain that view's results. Materialize creates a dataflow that continuously computes and updates the indexed results as upstream data changes, providing efficient point lookups and improved join performance.
 
 ### Examples in This Project:
 
-#### Indexed Intermediate View
+#### Creating an Indexed View
 - [`models/intermediate/int_winning_bids.sql`](models/intermediate/int_winning_bids.sql) - **Multi-column indexing strategy**
 
 ```sql
@@ -94,7 +94,7 @@ The indexed `int_winning_bids` view is referenced by:
 - `int_auction_flips` - Joins on auction_id
 - Multiple mart models - Various join patterns
 
-**Key Learning:** Indexes dramatically improve query performance for views, especially for joins and filtered queries, with Materialize maintaining them automatically.
+**Key Learning:** Adding an index to a view tells Materialize to incrementally maintain the view's results. Behind the scenes, Materialize spins up a dataflow to continuously compute and update these results as the underlying data changes, enabling fast point lookups and efficient joins.
 
 ---
 
@@ -235,6 +235,8 @@ graph LR
     C --> D[Marts<br/>MATERIALIZED VIEWS]
     D --> E[Kafka Topics<br/>SINKS]
 ```
+
+**Important:** The staging views (regular views) are not materialized themselves, but when referenced by the indexed intermediate views or materialized marts, they are compiled into those downstream dataflows. This means the transformation logic is efficiently integrated into the incremental computation.
 
 ### Resource Separation with Clusters
 
