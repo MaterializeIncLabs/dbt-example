@@ -1,14 +1,18 @@
-# Materialize Auction House dbt Example
+# Materialize dbt Project Example
 
-This dbt project demonstrates real-time streaming analytics with [Materialize](https://materialize.com) using the auction house dataset from Materialize's quickstart guide.
+This project demonstrates how to properly configure and organize a dbt project for [Materialize](https://materialize.com), showcasing best practices for building real-time data objects.
 
 ## Overview
 
-The project implements a real-time auction monitoring system that:
-- Detects "auction flippers" who buy and quickly resell items for profit
-- Monitors platform health metrics in real-time
-- Identifies suspicious account activity
-- Exports alerts and metrics to Kafka for downstream consumption
+This example teaches you how to:
+- Configure dbt models as views, indexed views, and materialized views in Materialize
+- Set up sources using Materialize's load generators
+- Create sinks to export data to Kafka
+- Organize your project with proper layer separation (staging, intermediate, marts)
+- Use dbt selectors for controlled deployment
+- Implement comprehensive testing strategies
+
+The project uses an auction house scenario to illustrate these concepts, implementing flipper detection, health monitoring, and suspicious activity alerts as practical examples of real-time data transformations.
 
 ## Materialize Concepts Demonstrated
 
