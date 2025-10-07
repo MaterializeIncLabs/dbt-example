@@ -26,6 +26,116 @@ This project showcases key Materialize features with practical examples:
 
 📚 **See [MATERIALIZE_CONCEPTS.md](MATERIALIZE_CONCEPTS.md) for detailed explanations and examples of each concept.**
 
+## Project Structure
+
+This project follows dbt best practices for organizing transformations into distinct layers. Understanding this structure is key to building maintainable real-time data pipelines.
+
+### Directory Layout
+
+```
+materialize_auction_house/
+├── dbt_project.yml          # Project configuration - defines project name, version, and model defaults
+├── profiles.yml             # Connection profiles for dev/staging/production environments
+├── packages.yml             # External package dependencies (e.g., dbt-utils)
+├── selectors.yml            # Custom selectors for deployment patterns
+├── models/                  # All data transformations
+│   ├── sources/            # Source definitions (Materialize-specific)
+│   │   └── *.sql          # CREATE SOURCE statements
+│   ├── staging/            # Raw data preparation layer
+│   │   ├── _sources.yml   # Source configurations and tests
+│   │   ├── schema.yml     # Model documentation and tests
+│   │   └── stg_*.sql      # Staging transformations (views)
+│   ├── intermediate/       # Business logic layer
+│   │   ├── schema.yml     # Model documentation and tests
+│   │   └── int_*.sql      # Intermediate transformations (views + indexes)
+│   ├── marts/             # Analytics layer
+│   │   ├── schema.yml     # Model documentation and tests
+│   │   └── *.sql          # Final models (materialized views)
+│   └── sinks/             # Data export layer (Materialize-specific)
+│       └── sink_*.sql     # Kafka sink definitions
+├── seeds/                  # Static reference data
+│   └── *.csv              # CSV files loaded into tables
+├── scripts/               # Utility scripts
+│   ├── setup.sh          # Environment setup
+│   └── *.sql             # Database initialization
+└── docker-compose.yml     # Local development environment
+```
+
+### Key Configuration Files
+
+#### `dbt_project.yml`
+The main project configuration file ([dbt docs](https://docs.getdbt.com/reference/dbt_project.yml)) defines:
+- Project metadata (name, version)
+- Model materialization defaults by directory
+- Variable definitions for environment-specific settings
+- Cluster assignments for Materialize workloads
+
+Example from this project:
+```yaml
+models:
+  materialize_auction_house:
+    staging:
+      +materialized: view        # Simple views for data prep
+      +schema: staging
+      +cluster: compute
+    intermediate:
+      +materialized: view        # Views that can be indexed
+      +schema: intermediate
+      +cluster: compute
+    marts:
+      +schema: marts
+      +cluster: compute          # Materialized views defined per-model
+```
+
+#### `profiles.yml`
+Defines connection parameters ([dbt docs](https://docs.getdbt.com/docs/core/connect-data-platform/connection-profiles)) for different environments:
+- Development (local Materialize)
+- Staging (test environment)
+- Production (Materialize Cloud)
+
+#### `selectors.yml`
+Custom selector definitions ([dbt docs](https://docs.getdbt.com/reference/node-selection/yaml-selectors)) for deployment patterns:
+- Run only sources, only transformations, or only sinks
+- Exclude certain model types by default
+- Group related models for testing
+
+### Model Organization Best Practices
+
+1. **Staging Layer** (`models/staging/`)
+   - One-to-one with source tables
+   - Minimal transformations (renaming, casting)
+   - Always views (no persistence needed)
+   - Naming convention: `stg_<source>_<table>`
+
+2. **Intermediate Layer** (`models/intermediate/`)
+   - Business logic and complex joins
+   - Can be indexed for performance
+   - Reusable transformations
+   - Naming convention: `int_<entity>_<verb>`
+
+3. **Marts Layer** (`models/marts/`)
+   - Final consumption-ready models
+   - Often materialized views for real-time results
+   - Optimized for specific use cases
+   - Naming convention: `fct_` (facts) or `dim_` (dimensions)
+
+4. **Sources** (`models/sources/`)
+   - Materialize-specific source definitions
+   - Load generators, Kafka, PostgreSQL, etc.
+   - Managed by dbt for better lineage
+
+5. **Sinks** (`models/sinks/`)
+   - Materialize-specific data exports
+   - Stream results to Kafka topics
+   - Real-time data pipelines
+
+### Additional Resources
+
+- [dbt Project Structure Guide](https://docs.getdbt.com/guides/best-practices/how-we-structure/1-guide-overview)
+- [dbt Model Organization](https://docs.getdbt.com/guides/best-practices/how-we-structure/2-staging)
+- [dbt Style Guide](https://docs.getdbt.com/guides/best-practices/how-we-style/0-how-we-style-our-dbt-projects)
+- [Materialize dbt Adapter](https://github.com/MaterializeInc/dbt-materialize)
+
 ## Quick Start with Docker
 
 ### Prerequisites
@@ -189,14 +299,6 @@ The documentation includes:
 - **Model Documentation**: Descriptions and column-level details for all models
 - **Test Results**: Data quality test results integrated into the docs
 - **Schema Information**: Complete catalog of tables, views, and materialized views
-
-## Project Structure
-
-- **Sources**: Materialize source definitions (load generators, Kafka, etc.)
-- **Staging**: Views that clean and standardize raw source data
-- **Intermediate**: Views implementing core business logic (winning bids, flip detection)
-- **Marts**: Materialized views and indexed views for analytics
-- **Sinks**: Kafka exports for real-time data streaming
 
 ## Selectors
 
