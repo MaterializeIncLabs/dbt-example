@@ -345,9 +345,32 @@ dbt run --selector metrics --profiles-dir . --profile materialize_auction_house
 
 ### dbt Best Practices
 - Modular model architecture with clear layer separation
-- 54 data quality tests for comprehensive validation
+- 60+ data quality tests including custom tests for real-time data
 - Full documentation with column descriptions
 - Environment-specific configurations (dev/staging/production)
+
+### Custom dbt Tests
+
+This project includes custom test macros designed for real-time data validation:
+
+- **`value_in_range`**: Validates that numeric values fall within expected bounds
+- **`outlier_detection`**: Uses z-score method to identify statistical outliers
+- **`data_recency`**: Ensures data has been updated within a specified time window
+- **`monotonic_increase`**: Verifies that values only increase over time (useful for counters)
+- **`referential_integrity_cascade`**: Tests relationships across multiple table levels
+
+Example usage in `models/marts/schema.yml`:
+```yaml
+- name: total_flips
+  tests:
+    - value_in_range:
+        min_value: 1
+        max_value: 1000
+    - outlier_detection:
+        z_threshold: 3.5
+        config:
+          severity: warn  # Warning instead of error for expected outliers
+```
 
 ## Customization
 
