@@ -20,18 +20,32 @@ models:
     staging:
       +materialized: view
       +schema: staging
-      +cluster: compute
+      +cluster: "{{ target.cluster }}"
     intermediate:
       +materialized: view
       +schema: intermediate
-      +cluster: compute
+      +cluster: "{{ target.cluster }}"
     marts:
       +schema: marts
-      +cluster: compute
+      +cluster: "{{ target.cluster }}"
 
 vars:
   flipper_threshold_days: 8
   min_profit_margin: 0.20
-  source_cluster: 'sources'
-  sink_cluster: 'sinks'
-  compute_cluster: 'compute'
+
+  # Cluster names are defined in profiles.yml per target
+  # This allows flexible configuration based on environment
+  # Example: dev uses 'sources', qa uses 'qa_sources', production uses 'production_sources'
+
+  # Blue/Green Deployment Configuration
+  # Used by dbt-materialize deploy_init, deploy_promote macros
+  # NOTE: Sources and sinks are excluded - they remain in separate clusters
+  # The cluster and schema names will be determined by the target in profiles.yml
+  deployment:
+    default:
+      clusters:
+        - "{{ target.cluster }}"
+      schemas:
+        - "{{ generate_schema_name('staging', target.schema) }}"
+        - "{{ generate_schema_name('intermediate', target.schema) }}"
+        - "{{ generate_schema_name('marts', target.schema) }}"

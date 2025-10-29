@@ -1,0 +1,79 @@
+name: dbt CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'models/**'
+      - 'macros/**'
+      - 'tests/**'
+      - 'seeds/**'
+      - 'dbt_project.yml'
+      - 'packages.yml'
+      - 'selectors.yml'
+      - '.github/workflows/dbt-ci.yml'
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate dbt Project
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dbt
+        uses: ./.github/actions/setup-dbt
+        with:
+          python-version: '3.11'
+
+      - name: Parse dbt project
+        run: |
+          echo "::group::Parsing dbt project"
+          dbt parse --profiles-dir . --profile materialize_auction_house --target dev
+          echo "::endgroup::"
+          echo "✓ dbt project parsed successfully - all refs and sources are valid"
+
+      - name: Compile dbt models
+        run: |
+          echo "::group::Compiling dbt models"
+          dbt compile --profiles-dir . --profile materialize_auction_house --target dev
+          echo "::endgroup::"
+          echo "✓ All models compiled successfully - SQL syntax is valid"
+
+      - name: Upload compiled SQL artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-sql
+          path: target/compiled/
+          retention-days: 7
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### ✅ dbt CI Validation Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Project parsing successful" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ All models compiled without errors" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ SQL syntax validated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** This workflow validates SQL compilation only." >> $GITHUB_STEP_SUMMARY
+          echo "Full integration tests run on the QA environment after merge." >> $GITHUB_STEP_SUMMARY
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "### ❌ dbt CI Validation Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          echo "Common issues:" >> $GITHUB_STEP_SUMMARY
+          echo "- Invalid SQL syntax" >> $GITHUB_STEP_SUMMARY
+          echo "- Missing or invalid ref() or source() references" >> $GITHUB_STEP_SUMMARY
+          echo "- Missing dependencies in packages.yml" >> $GITHUB_STEP_SUMMARY

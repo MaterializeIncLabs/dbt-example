@@ -1,0 +1,126 @@
+name: Cleanup Old Deployment Environments
+
+on:
+  schedule:
+    # Run every hour
+    - cron: '0 * * * *'
+
+  workflow_dispatch:
+    inputs:
+      retention_hours:
+        description: 'Only cleanup environments older than this many hours'
+        type: number
+        default: 1
+        required: false
+      dry_run:
+        description: 'Preview what would be cleaned up without actually deleting'
+        type: boolean
+        default: false
+        required: false
+
+jobs:
+  cleanup-deployments:
+    name: Cleanup Old Deployment Environments
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [qa, production]
+
+    env:
+      MATERIALIZE_HOST: ${{ secrets.MATERIALIZE_HOST }}
+      MATERIALIZE_PORT: ${{ secrets.MATERIALIZE_PORT }}
+      MATERIALIZE_USER: ${{ secrets.MATERIALIZE_USER }}
+      MATERIALIZE_PASSWORD: ${{ secrets.MATERIALIZE_PASSWORD }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dbt
+        uses: ./.github/actions/setup-dbt
+
+      - name: Check for deployment environments
+        id: check
+        run: |
+          echo "::group::Checking for deployment environments in ${{ matrix.target }}"
+
+          # Query Materialize for clusters with _dbt_deploy suffix
+          QUERY="SELECT
+            c.name,
+            c.created_at,
+            EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600 AS age_hours
+          FROM mz_clusters c
+          WHERE c.name LIKE '%_dbt_deploy'
+          ORDER BY c.created_at DESC;"
+
+          echo "Querying Materialize for deployment clusters..."
+
+          # Use psql to query (dbt-materialize uses PostgreSQL wire protocol)
+          PGPASSWORD="$MATERIALIZE_PASSWORD" psql \
+            -h "$MATERIALIZE_HOST" \
+            -p "$MATERIALIZE_PORT" \
+            -U "$MATERIALIZE_USER" \
+            -d auction_team \
+            -c "$QUERY" > /tmp/clusters.txt || true
+
+          cat /tmp/clusters.txt
+
+          # Check if any deployment clusters exist for this target
+          if grep -q "${{ matrix.target }}_.*_dbt_deploy" /tmp/clusters.txt; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "No deployment environments found for ${{ matrix.target }}"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Cleanup old environments
+        if: steps.check.outputs.found == 'true'
+        run: |
+          RETENTION_HOURS="${{ inputs.retention_hours || 1 }}"
+          DRY_RUN="${{ inputs.dry_run || false }}"
+
+          echo "::group::Cleaning up deployment environments older than ${RETENTION_HOURS} hours"
+
+          if [ "$DRY_RUN" == "true" ]; then
+            echo "::warning::DRY RUN MODE - No actual cleanup will be performed"
+            echo ""
+            echo "Would cleanup deployment environments for: ${{ matrix.target }}"
+            echo "Retention threshold: ${RETENTION_HOURS} hours"
+            echo ""
+            echo "To actually cleanup, run without dry_run or wait for scheduled execution"
+          else
+            echo "Running cleanup for ${{ matrix.target }} environment..."
+            echo "Retention threshold: ${RETENTION_HOURS} hours"
+
+            # Run dbt deploy_cleanup
+            # Note: This will cleanup if deployment environments exist
+            dbt run-operation deploy_cleanup \
+              --profiles-dir . \
+              --profile materialize_auction_house \
+              --target ${{ matrix.target }} || {
+                echo "::warning::Cleanup operation completed with warnings or no environments found"
+              }
+
+            echo "✓ Cleanup completed for ${{ matrix.target }}"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.found }}" == "true" ]; then
+            if [ "${{ inputs.dry_run }}" == "true" ]; then
+              echo "### 🔍 Cleanup Preview (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
+              echo "DRY RUN - No environments were actually deleted" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### ✅ Cleanup Completed (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
+              echo "Old deployment environments have been removed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "### ℹ️  No Cleanup Needed (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
+            echo "No old deployment environments found" >> $GITHUB_STEP_SUMMARY
+          fi

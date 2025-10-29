@@ -1,5 +1,9 @@
 # Materialize dbt Project Example
 
+![dbt CI](https://github.com/your-org/dbt-example/actions/workflows/dbt-ci.yml/badge.svg)
+![Deploy to QA](https://github.com/your-org/dbt-example/actions/workflows/dbt-deploy-qa.yml/badge.svg)
+![Blue/Green Production](https://github.com/your-org/dbt-example/actions/workflows/dbt-blue-green.yml/badge.svg)
+
 This project demonstrates how to properly configure and organize a dbt project for [Materialize](https://materialize.com), showcasing best practices for building real-time data objects.
 
 ## Overview
@@ -11,8 +15,40 @@ This example teaches you how to:
 - Organize your project with proper layer separation (staging, intermediate, marts)
 - Use dbt selectors for controlled deployment
 - Implement comprehensive testing strategies
+- **Deploy with CI/CD and blue/green deployments using GitHub Actions**
 
 The project uses an auction house scenario to illustrate these concepts, implementing flipper detection, health monitoring, and suspicious activity alerts as practical examples of real-time data transformations.
+
+## CI/CD & Deployment
+
+This project includes complete CI/CD workflows for automated testing and zero-downtime deployments:
+
+### Workflows
+
+- **dbt CI** - Validates SQL compilation on every pull request
+- **Deploy to QA** - Auto-deploys to QA environment when code merges to `main`
+- **Blue/Green Production** - Zero-downtime production deployments using native dbt-materialize macros
+- **Scheduled Cleanup** - Automatically removes old deployment environments
+
+### Quick Start
+
+**Deploy to QA:**
+```bash
+git push origin main  # Automatic deployment
+```
+
+**Deploy to Production:**
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+gh release create v1.0.0  # Triggers blue/green deployment
+```
+
+### Documentation
+
+- 📘 **[CI/CD Setup Guide](docs/CI-CD-SETUP.md)** - Complete setup instructions for GitHub Actions
+- 🔄 **[Blue/Green Deployment](docs/BLUE-GREEN-DEPLOYMENT.md)** - Zero-downtime deployment guide
+- ✅ **[Deployment Checklist](docs/DEPLOYMENT-CHECKLIST.md)** - Pre and post-deployment validation
 
 ## Materialize Concepts Demonstrated
 

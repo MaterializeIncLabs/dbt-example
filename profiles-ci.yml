@@ -1,0 +1,75 @@
+# CI/CD Profiles Configuration
+# This file uses environment variables for credentials, making it safe for CI/CD pipelines.
+# Use this with: dbt run --profiles-dir . --profile materialize_auction_house
+#
+# Environment naming:
+# - dev: Local development (Docker Compose)
+# - qa: Quality assurance / testing (Materialize Cloud)
+# - production: Production (Materialize Cloud)
+#
+# Multi-tenant setup:
+# - Database: auction_team (team-specific database in shared Materialize instance)
+# - This allows multiple teams to coexist in the same Materialize Cloud environment
+#
+# Schema naming results:
+# - dev: staging, intermediate, marts (no prefix)
+# - qa: qa_staging, qa_intermediate, qa_marts
+# - production: production_staging, production_intermediate, production_marts
+#
+# Required environment variables for CI/CD:
+#
+# Option 1 - Shared Materialize Instance (Most Common):
+#   - MATERIALIZE_HOST
+#   - MATERIALIZE_USER
+#   - MATERIALIZE_PASSWORD
+#   Uses namespacing (clusters/schemas) to separate QA and Production
+#
+# Option 2 - Separate Instances (Self-Managed):
+#   - MATERIALIZE_QA_HOST, MATERIALIZE_QA_USER, MATERIALIZE_QA_PASSWORD
+#   - MATERIALIZE_PROD_HOST, MATERIALIZE_PROD_USER, MATERIALIZE_PROD_PASSWORD
+#
+# This config supports both approaches with automatic fallback to shared instance.
+
+materialize_auction_house:
+  target: dev
+  outputs:
+    # Local development (Docker Compose)
+    dev:
+      type: materialize
+      host: localhost
+      port: 6875
+      user: materialize
+      pass: materialize
+      database: materialize  # Local Docker uses default database
+      schema: public  # Results in: staging, intermediate, marts
+      threads: 1
+      cluster: quickstart
+      sslmode: prefer
+
+    # QA environment (Materialize Cloud)
+    # Supports both shared instance (MATERIALIZE_HOST) and separate instance (MATERIALIZE_QA_HOST)
+    qa:
+      type: materialize
+      host: "{{ env_var('MATERIALIZE_QA_HOST', env_var('MATERIALIZE_HOST')) }}"
+      port: "{{ env_var('MATERIALIZE_QA_PORT', env_var('MATERIALIZE_PORT', '6875')) | as_number }}"
+      user: "{{ env_var('MATERIALIZE_QA_USER', env_var('MATERIALIZE_USER')) }}"
+      pass: "{{ env_var('MATERIALIZE_QA_PASSWORD', env_var('MATERIALIZE_PASSWORD')) }}"
+      database: auction_team  # Team-specific database
+      schema: qa  # Results in: qa_staging, qa_intermediate, qa_marts
+      threads: 1
+      cluster: qa_compute
+      sslmode: require
+
+    # Production environment (Materialize Cloud)
+    # Supports both shared instance (MATERIALIZE_HOST) and separate instance (MATERIALIZE_PROD_HOST)
+    production:
+      type: materialize
+      host: "{{ env_var('MATERIALIZE_PROD_HOST', env_var('MATERIALIZE_HOST')) }}"
+      port: "{{ env_var('MATERIALIZE_PROD_PORT', env_var('MATERIALIZE_PORT', '6875')) | as_number }}"
+      user: "{{ env_var('MATERIALIZE_PROD_USER', env_var('MATERIALIZE_USER')) }}"
+      pass: "{{ env_var('MATERIALIZE_PROD_PASSWORD', env_var('MATERIALIZE_PASSWORD')) }}"
+      database: auction_team  # Team-specific database
+      schema: production  # Results in: production_staging, production_intermediate, production_marts
+      threads: 1
+      cluster: production_compute
+      sslmode: require

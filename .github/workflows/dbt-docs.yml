@@ -1,0 +1,59 @@
+name: Generate dbt Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'models/**'
+      - 'macros/**'
+      - 'dbt_project.yml'
+
+  workflow_dispatch:
+
+jobs:
+  generate-docs:
+    name: Generate and Upload dbt Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dbt
+        uses: ./.github/actions/setup-dbt
+
+      - name: Generate dbt docs
+        run: |
+          echo "::group::Generating dbt documentation"
+          dbt docs generate --profiles-dir . --profile materialize_auction_house --target dev
+          echo "::endgroup::"
+          echo "✓ Documentation generated successfully"
+
+      - name: Upload documentation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: |
+            target/catalog.json
+            target/manifest.json
+            target/index.html
+          retention-days: 90
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### ✅ dbt Documentation Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Documentation has been generated and uploaded as an artifact." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**To view locally:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download the \`dbt-docs\` artifact from this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "2. Extract the files" >> $GITHUB_STEP_SUMMARY
+          echo "3. Run: \`dbt docs serve --profiles-dir . --target dev\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Documentation includes:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Data lineage DAG (visual flow from sources to marts)" >> $GITHUB_STEP_SUMMARY
+          echo "- Model descriptions and column documentation" >> $GITHUB_STEP_SUMMARY
+          echo "- Test results and data quality metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Source and seed data details" >> $GITHUB_STEP_SUMMARY
