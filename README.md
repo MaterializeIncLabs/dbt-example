@@ -47,8 +47,9 @@ gh release create v1.0.0  # Triggers blue/green deployment
 ### Documentation
 
 - 📘 **[CI/CD Setup Guide](docs/CI-CD-SETUP.md)** - Complete setup instructions for GitHub Actions
-- 🔄 **[Blue/Green Deployment](docs/BLUE-GREEN-DEPLOYMENT.md)** - Zero-downtime deployment guide
+- 🔄 **[Blue/Green Deployment](docs/BLUE-GREEN-DEPLOYMENT.md)** - Zero-downtime deployment guide (includes two workflow options)
 - ✅ **[Deployment Checklist](docs/DEPLOYMENT-CHECKLIST.md)** - Pre and post-deployment validation
+- 🧪 **[Testing Guide](docs/TESTING.md)** - Comprehensive test suite for workflows and deployments
 
 ## Materialize Concepts Demonstrated
 
@@ -241,9 +242,35 @@ Custom selector definitions ([dbt docs](https://docs.getdbt.com/reference/node-s
   COPY (SUBSCRIBE (SELECT * FROM public_marts.fct_auction_flippers)) TO STDOUT;
   ```
 
+### Testing
+
+This project includes comprehensive tests for workflows and deployments:
+
+```bash
+# Quick test using Make
+make test                 # Run all tests (workflow + deployment)
+make test-workflows       # Validate GitHub Actions workflows only
+make test-deployment      # Test blue/green deployment macros
+make test-dbt            # Run dbt data quality tests
+
+# Manual test execution
+./scripts/test_workflows.sh              # Workflow validation
+./scripts/test_blue_green_deployment.sh  # Deployment integration tests
+```
+
+**What's tested:**
+- ✅ GitHub Actions workflow structure and syntax
+- ✅ Blue/green deployment macros (`deploy_init`, `deploy_promote`, etc.)
+- ✅ Atomic swap and rollback capabilities
+- ✅ Cluster hydration checks
+- ✅ Data quality via dbt tests
+
+See **[TESTING.md](docs/TESTING.md)** for complete testing documentation.
+
 ### Cleanup
 
 ```bash
+make clean               # Clean all artifacts
 docker compose down -v  # Stop and remove containers/volumes
 ```
 

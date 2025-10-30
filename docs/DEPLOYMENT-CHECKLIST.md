@@ -61,6 +61,9 @@ Quick reference checklist for dbt + Materialize deployments.
 - [ ] Team notified of deployment
 - [ ] Rollback plan documented
 - [ ] On-call engineer available
+- [ ] Choose deployment workflow:
+  - **Single Approval:** Fast, trusted CI, regular changes
+  - **Two-Stage Approval:** Critical changes, extra validation needed
 
 ### Release Preparation
 - [ ] Version number decided (semver)
@@ -69,21 +72,38 @@ Quick reference checklist for dbt + Materialize deployments.
 - [ ] Tag pushed: `git push origin v1.0.0`
 
 ### Initiate Deployment
-- [ ] GitHub release created
-- [ ] "Blue/Green Production Deployment" workflow triggered
-- [ ] `retention_hours` configured (default: 1, critical changes: 24)
-- [ ] Workflow waiting for approval
 
-### Review Before Approval
+**Option A: Single Approval Workflow (Default)**
+- [ ] GitHub release created (automatic trigger)
+  - OR manually trigger "Blue/Green Production Deployment (Single Approval)"
+- [ ] `retention_hours` configured (default: 1, critical changes: 24)
+- [ ] Workflow waiting for initial approval
+- [ ] Review commit, CI results, and deployment plan
+- [ ] Approve deployment
+- [ ] Wait for automatic completion (all steps run automatically)
+
+**Option B: Two-Stage Approval Workflow (Extra Caution)**
+- [ ] Manually trigger "Blue/Green Production Deployment (Two-Stage Approval)"
+- [ ] `retention_hours` configured (default: 1, critical changes: 24)
+- [ ] Workflow waiting for Stage 1 approval
+- [ ] Review commit, CI results, and deployment plan
+- [ ] Approve Stage 1 (builds and tests green environment)
+
+### Review Before Promotion (Two-Stage Workflow Only)
+- [ ] Stage 1 completed successfully
 - [ ] Green environment initialized successfully
 - [ ] Models deployed to green without errors
 - [ ] Cluster hydration complete (lag < 1s)
 - [ ] All tests passed on green
 - [ ] Dry run validation shows expected changes
+- [ ] Download and review test artifacts if needed
+- [ ] Review dry run output for ALTER statements
 
-### Approval
+### Stage 2 Approval (Two-Stage Workflow Only)
 - [ ] Reviewer assigned and notified
-- [ ] Deployment approved in GitHub Actions
+- [ ] Test results reviewed and acceptable
+- [ ] Dry run output reviewed and correct
+- [ ] Approve Stage 2 (promotion to production)
 - [ ] Promotion completed successfully
 - [ ] Old blue environment retained for rollback
 
@@ -224,6 +244,8 @@ Quick reference checklist for dbt + Materialize deployments.
 
 ## Quick Reference Commands
 
+**Note:** For GitHub Actions workflows, use the Actions UI. These commands are for manual deployment only.
+
 ```bash
 # Test locally
 dbt test --profiles-dir . --profile materialize_auction_house --target dev
@@ -232,18 +254,19 @@ dbt test --profiles-dir . --profile materialize_auction_house --target dev
 dbt run --selector transformations --profiles-dir . --target qa
 dbt test --profiles-dir . --target qa
 
-# Blue/Green Production Deploy
+# Manual Blue/Green Production Deploy (follows two-stage approval pattern)
 dbt run-operation deploy_init --profiles-dir . --target production
 dbt run --selector transformations --vars 'deploy: True' --profiles-dir . --target production
 dbt run-operation deploy_await --args '{poll_interval: 15, lag_threshold: "1s"}' --profiles-dir . --target production
 dbt test --vars 'deploy: True' --profiles-dir . --target production
 dbt run-operation deploy_promote --args '{dry_run: true}' --profiles-dir . --target production
+# REVIEW dry run output before continuing!
 dbt run-operation deploy_promote --args '{wait: true}' --profiles-dir . --target production
 
-# Rollback
+# Rollback (swap back to old environment)
 dbt run-operation deploy_promote --profiles-dir . --target production
 
-# Cleanup
+# Cleanup old environment
 dbt run-operation deploy_cleanup --profiles-dir . --target production
 ```
 

@@ -32,6 +32,7 @@ models:
 vars:
   flipper_threshold_days: 8
   min_profit_margin: 0.20
+  sink_cluster: sinks
 
   # Cluster names are defined in profiles.yml per target
   # This allows flexible configuration based on environment
@@ -40,12 +41,19 @@ vars:
   # Blue/Green Deployment Configuration
   # Used by dbt-materialize deploy_init, deploy_promote macros
   # NOTE: Sources and sinks are excluded - they remain in separate clusters
-  # The cluster and schema names will be determined by the target in profiles.yml
   deployment:
-    default:
+    dev:
       clusters:
-        - "{{ target.cluster }}"
+        - quickstart
+        - compute
       schemas:
-        - "{{ generate_schema_name('staging', target.schema) }}"
-        - "{{ generate_schema_name('intermediate', target.schema) }}"
-        - "{{ generate_schema_name('marts', target.schema) }}"
+        - public_staging
+        - public_intermediate
+        - public_marts
+    production:
+      clusters:
+        - production_compute
+      schemas:
+        - production_staging
+        - production_intermediate
+        - production_marts
