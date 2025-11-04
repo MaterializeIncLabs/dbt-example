@@ -45,7 +45,6 @@ vars:
     dev:
       clusters:
         - quickstart
-        - compute
       schemas:
         - public_staging
         - public_intermediate
