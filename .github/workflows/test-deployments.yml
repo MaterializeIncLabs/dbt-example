@@ -67,7 +67,7 @@ jobs:
         ports:
           - 6875:6875
         options: >-
-          --health-cmd "pg_isready -U materialize -h localhost"
+          --health-cmd "pg_isready -U materialize -h localhost -p 6875"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
