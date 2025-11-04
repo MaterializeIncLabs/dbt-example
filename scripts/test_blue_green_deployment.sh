@@ -206,12 +206,13 @@ if dbt run --selector transformations \
     --vars 'deploy: True' \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" > /tmp/deploy_green.log 2>&1; then
+    --target "$DBT_TARGET" \
+    --debug > /tmp/deploy_green.log 2>&1; then
     print_pass "Models deployed to green environment"
 else
     print_fail "Failed to deploy models to green"
     print_info "Error details:"
-    grep -A 3 "ERROR\|Database Error" /tmp/deploy_green.log | head -10
+    grep -B 2 -A 5 "ERROR\|Database Error\|Compilation Error" /tmp/deploy_green.log | head -50
 fi
 
 print_header "Test 3: Cluster Hydration Check"
@@ -222,10 +223,13 @@ if timeout 30 dbt run-operation deploy_await \
     --args '{poll_interval: 5, lag_threshold: "10s"}' \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" > /dev/null 2>&1; then
+    --target "$DBT_TARGET" \
+    --debug > /tmp/deploy_await.log 2>&1; then
     print_pass "deploy_await completed successfully"
 else
     print_fail "deploy_await timed out or failed (this is acceptable for local testing)"
+    print_info "Error details:"
+    grep -B 2 -A 5 "ERROR\|Error\|CRITICAL\|lag" /tmp/deploy_await.log | head -30
 fi
 
 print_header "Test 4: Dry Run Promotion"
@@ -235,7 +239,8 @@ if dbt run-operation deploy_promote \
     --args '{dry_run: true}' \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" > /tmp/deploy_promote_dry_run.log 2>&1; then
+    --target "$DBT_TARGET" \
+    --debug > /tmp/deploy_promote_dry_run.log 2>&1; then
     print_pass "Dry run executed successfully"
 
     # Check that dry run output contains expected commands
@@ -246,6 +251,8 @@ if dbt run-operation deploy_promote \
     fi
 else
     print_fail "Dry run failed"
+    print_info "Error details:"
+    grep -B 2 -A 5 "ERROR\|Error\|CRITICAL" /tmp/deploy_promote_dry_run.log | head -50
 fi
 
 print_header "Test 5: Actual Promotion (Atomic Swap)"
@@ -270,7 +277,8 @@ green_cluster_after=""
 if dbt run-operation deploy_promote \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" > /tmp/deploy_promote.log 2>&1; then
+    --target "$DBT_TARGET" \
+    --debug > /tmp/deploy_promote.log 2>&1; then
     print_pass "deploy_promote executed successfully"
 
     # Verify swap occurred (old blue becomes green, old green becomes blue)
@@ -285,7 +293,7 @@ if dbt run-operation deploy_promote \
 else
     print_fail "deploy_promote failed"
     print_info "Error details:"
-    grep -A 3 "Error" /tmp/deploy_promote.log | head -10
+    grep -B 2 -A 5 "ERROR\|Error\|CRITICAL" /tmp/deploy_promote.log | head -50
 fi
 
 print_header "Test 6: Rollback Test"
@@ -296,12 +304,13 @@ if [ -n "$green_cluster_after" ] && [ "$green_cluster_after" -eq 1 ]; then
     if dbt run-operation deploy_promote \
         --profiles-dir "$PROFILES_DIR" \
         --profile "$DBT_PROFILE" \
-        --target "$DBT_TARGET" > /tmp/deploy_rollback.log 2>&1; then
+        --target "$DBT_TARGET" \
+        --debug > /tmp/deploy_rollback.log 2>&1; then
         print_pass "Rollback (second deploy_promote) executed successfully"
     else
         print_fail "Rollback failed"
         print_info "Error details:"
-        grep -A 3 "Error" /tmp/deploy_rollback.log | head -10
+        grep -B 2 -A 5 "ERROR\|Error\|CRITICAL" /tmp/deploy_rollback.log | head -50
     fi
 else
     print_info "Skipping rollback test (promotion didn't complete)"
