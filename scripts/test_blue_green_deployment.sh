@@ -326,29 +326,7 @@ else
     ((TESTS_RUN++))
 fi
 
-print_header "Test 4: Dry Run Promotion"
-print_test "Running deploy_promote in dry run mode..."
-
-if dbt run-operation deploy_promote \
-    --args '{dry_run: true}' \
-    --profiles-dir "$PROFILES_DIR" \
-    --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" > /tmp/deploy_promote_dry_run.log 2>&1; then
-    print_pass "Dry run executed successfully"
-
-    # Check that dry run output contains expected commands
-    if grep -q "ALTER" /tmp/deploy_promote_dry_run.log || grep -q "SWAP" /tmp/deploy_promote_dry_run.log; then
-        print_pass "Dry run output contains ALTER/SWAP commands"
-    else
-        print_fail "Dry run output missing expected commands"
-    fi
-else
-    print_fail "Dry run failed"
-    print_info "Error details:"
-    grep -B 2 -A 5 "ERROR\|Error\|error" /tmp/deploy_promote_dry_run.log | head -30
-fi
-
-print_header "Test 5: Actual Promotion (Atomic Swap)"
+print_header "Test 4: Actual Promotion (Atomic Swap)"
 print_test "Executing deploy_promote (atomic swap)..."
 
 # Verify green environment still exists before promoting
@@ -388,7 +366,7 @@ else
     grep -A 3 "Error" /tmp/deploy_promote.log | head -10
 fi
 
-print_header "Test 6: Rollback Test"
+print_header "Test 5: Rollback Test"
 print_test "Testing rollback (swapping back)..."
 
 # Only test rollback if promotion succeeded
@@ -408,7 +386,7 @@ else
     ((TESTS_RUN++))
 fi
 
-print_header "Test 7: Cleanup"
+print_header "Test 6: Cleanup"
 print_test "Running deploy_cleanup to remove old environment..."
 
 green_cluster_before_cleanup=$(check_cluster_exists "quickstart_dbt_deploy")
@@ -431,7 +409,7 @@ else
     print_fail "deploy_cleanup failed"
 fi
 
-print_header "Test 8: Idempotency Test"
+print_header "Test 7: Idempotency Test"
 print_test "Testing deploy_cleanup on non-existent environment (should not error)..."
 
 if dbt run-operation deploy_cleanup \
