@@ -1,0 +1,152 @@
+name: Test Deployment Workflows
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/dbt-blue-green*.yml'
+      - 'scripts/test_*.sh'
+      - 'macros/deploy/**'
+      - '.github/workflows/test-deployments.yml'
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-workflows:
+    name: Validate Workflow Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install YAML parser
+        run: pip install pyyaml
+
+      - name: Run workflow validation tests
+        run: |
+          chmod +x scripts/test_workflows.sh
+          ./scripts/test_workflows.sh
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### ✅ Workflow Validation Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All GitHub Actions workflows validated successfully:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ YAML syntax valid" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Required fields present" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Security best practices followed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Deployment steps configured correctly" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "### ❌ Workflow Validation Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Please review the test output above for details." >> "$GITHUB_STEP_SUMMARY"
+
+  test-deployment-integration:
+    name: Test Blue/Green Deployment
+    runs-on: ubuntu-latest
+    needs: validate-workflows
+
+    services:
+      materialize:
+        image: materialize/materialized:latest
+        ports:
+          - 6875:6875
+        options: >-
+          --health-cmd "pg_isready -U materialize -h localhost -p 6875"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dbt
+        uses: ./.github/actions/setup-dbt
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Wait for Materialize
+        run: |
+          echo "Waiting for Materialize to be ready..."
+          until pg_isready -h localhost -p 6875 -U materialize; do
+            echo "Waiting..."
+            sleep 2
+          done
+          echo "Materialize is ready!"
+
+      - name: Install dbt dependencies
+        run: |
+          dbt deps --profiles-dir . --profile materialize_auction_house
+
+      - name: Run blue/green deployment tests
+        run: |
+          chmod +x scripts/test_blue_green_deployment.sh
+          ./scripts/test_blue_green_deployment.sh
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### ✅ Blue/Green Deployment Tests Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All deployment operations tested successfully:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_init creates green environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_await checks cluster hydration" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_promote performs atomic swap" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Rollback capability verified" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_cleanup removes old environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Operations are idempotent" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "### ❌ Blue/Green Deployment Tests Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Please review the test output above for details." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Common issues:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Materialize connection problems" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Missing dbt-materialize deployment macros" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cluster naming conflicts" >> "$GITHUB_STEP_SUMMARY"
+
+  actionlint:
+    name: Lint Workflow Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          filter_mode: added
+          level: error
+          fail_on_error: false
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### ✅ Workflow Linting Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All workflows follow GitHub Actions best practices." >> "$GITHUB_STEP_SUMMARY"

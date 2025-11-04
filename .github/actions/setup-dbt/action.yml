@@ -1,0 +1,50 @@
+name: 'Setup dbt for Materialize'
+description: 'Install and configure dbt-materialize with dependencies'
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  dbt-materialize-version:
+    description: 'dbt-materialize version to install'
+    required: false
+    default: '1.8.1'
+  working-directory:
+    description: 'Working directory for dbt project'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install dbt-materialize
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install dbt-materialize==${{ inputs.dbt-materialize-version }}
+
+    - name: Verify dbt installation
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        dbt --version
+        echo "✓ dbt-materialize installed successfully"
+
+    - name: Install dbt dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        dbt deps --profiles-dir . --profile materialize_auction_house
+        echo "✓ dbt dependencies installed"
+
+    - name: Display connection info
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "::notice::Using profiles-ci.yml for connection configuration"
+        echo "::notice::Target will be specified in dbt command"

@@ -1,0 +1,110 @@
+name: Deploy to QA
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'models/**'
+      - 'macros/**'
+      - 'tests/**'
+      - 'seeds/**'
+      - 'dbt_project.yml'
+      - 'packages.yml'
+      - 'selectors.yml'
+
+  workflow_dispatch:
+
+concurrency:
+  group: qa-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy-qa:
+    name: Deploy to QA Environment
+    runs-on: ubuntu-latest
+    environment: qa
+
+    env:
+      MATERIALIZE_HOST: ${{ secrets.MATERIALIZE_HOST }}
+      MATERIALIZE_PORT: ${{ secrets.MATERIALIZE_PORT }}
+      MATERIALIZE_USER: ${{ secrets.MATERIALIZE_USER }}
+      MATERIALIZE_PASSWORD: ${{ secrets.MATERIALIZE_PASSWORD }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dbt
+        uses: ./.github/actions/setup-dbt
+
+      - name: Test connection
+        run: |
+          echo "::group::Testing Materialize connection"
+          dbt debug --profiles-dir . --profile materialize_auction_house --target qa
+          echo "::endgroup::"
+          echo "✓ Successfully connected to QA environment"
+
+      - name: Load seed data
+        run: |
+          echo "::group::Loading seed data"
+          dbt seed --profiles-dir . --profile materialize_auction_house --target qa
+          echo "::endgroup::"
+          echo "✓ Seed data loaded"
+
+      - name: Run transformations
+        run: |
+          echo "::group::Running dbt transformations"
+          dbt run --selector transformations \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target qa
+          echo "::endgroup::"
+          echo "✓ All models deployed to QA"
+
+      - name: Run tests
+        run: |
+          echo "::group::Running dbt tests"
+          dbt test --profiles-dir . \
+            --profile materialize_auction_house \
+            --target qa \
+            --store-failures
+          echo "::endgroup::"
+          echo "✓ All tests passed"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-test-results
+          path: |
+            target/run_results.json
+            target/manifest.json
+          retention-days: 30
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "### ✅ QA Deployment Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** QA (auction_team database)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Schemas:** qa_staging, qa_intermediate, qa_marts" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Cluster:** qa_compute" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployed:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Seed data loaded" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All transformations deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All tests passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Triggered by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "### ❌ QA Deployment Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Please review the workflow logs for details." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Failed at:** $(date -u)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"

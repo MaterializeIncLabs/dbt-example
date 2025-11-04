@@ -1,7 +1,6 @@
 {{
   config(
-    materialized='materializedview',
-    cluster='compute'
+    materialized='materializedview'
   )
 }}
 

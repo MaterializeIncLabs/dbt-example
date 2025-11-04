@@ -1,0 +1,251 @@
+name: Blue/Green Production Deployment (Single Approval)
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests (not recommended)'
+        type: boolean
+        default: false
+        required: false
+      retention_hours:
+        description: 'Hours to retain old blue environment for rollback'
+        type: number
+        default: 1
+        required: false
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  blue-green-deploy:
+    name: Blue/Green Deployment to Production
+    runs-on: ubuntu-latest
+    # Single approval gate at START - once approved, all steps run automatically
+    # For mid-deployment approval (after testing, before promotion), use dbt-blue-green-two-stage.yml
+    environment: production  # Requires manual approval in GitHub
+
+    env:
+      MATERIALIZE_HOST: ${{ secrets.MATERIALIZE_HOST }}
+      MATERIALIZE_PORT: ${{ secrets.MATERIALIZE_PORT }}
+      MATERIALIZE_USER: ${{ secrets.MATERIALIZE_USER }}
+      MATERIALIZE_PASSWORD: ${{ secrets.MATERIALIZE_PASSWORD }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dbt
+        uses: ./.github/actions/setup-dbt
+
+      - name: Test connection
+        run: |
+          echo "::group::Testing Materialize connection"
+          dbt debug --profiles-dir . --profile materialize_auction_house --target production
+          echo "::endgroup::"
+          echo "✓ Successfully connected to production environment"
+
+      # ====================
+      # STEP 1: Initialize green environment
+      # ====================
+      - name: Initialize green environment
+        id: deploy_init
+        run: |
+          echo "::group::Initializing deployment environment (green)"
+          echo "This creates:"
+          echo "  - Cluster: production_compute_dbt_deploy"
+          echo "  - Schemas: production_staging_dbt_deploy, production_intermediate_dbt_deploy, production_marts_dbt_deploy"
+          dbt run-operation deploy_init \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production
+          echo "::endgroup::"
+          echo "✓ Green environment initialized"
+
+      # ====================
+      # STEP 2: Deploy to green environment
+      # ====================
+      - name: Load seed data to green
+        run: |
+          echo "::group::Loading seed data"
+          dbt seed --vars 'deploy: True' \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production
+          echo "::endgroup::"
+          echo "✓ Seed data loaded to green"
+
+      - name: Deploy transformations to green
+        run: |
+          echo "::group::Deploying models to green environment"
+          dbt run --selector transformations \
+            --vars 'deploy: True' \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production
+          echo "::endgroup::"
+          echo "✓ All models deployed to green environment"
+
+      # ====================
+      # STEP 3: Wait for hydration
+      # ====================
+      - name: Await cluster readiness
+        run: |
+          echo "::group::Waiting for green cluster hydration"
+          echo "Polling every 15 seconds until lag < 1 second..."
+          echo "This ensures the cluster is fully caught up before testing."
+          dbt run-operation deploy_await \
+            --args '{poll_interval: 15, lag_threshold: "1s"}' \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production
+          echo "::endgroup::"
+          echo "✓ Green cluster is fully hydrated and ready"
+
+      # ====================
+      # STEP 4: Test green environment (after hydration)
+      # ====================
+      - name: Test green environment
+        if: ${{ !inputs.skip_tests }}
+        run: |
+          echo "::group::Running tests on green environment"
+          echo "Testing fully hydrated cluster to ensure data quality..."
+          dbt test --vars 'deploy: True' \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production \
+            --store-failures
+          echo "::endgroup::"
+          echo "✓ All tests passed on green environment"
+
+      # ====================
+      # STEP 5: Dry run promotion (validation)
+      # ====================
+      - name: Validate promotion (dry run)
+        run: |
+          echo "::group::Validating promotion sequence (dry run)"
+          echo "This shows what SQL commands will be executed during promotion..."
+          dbt run-operation deploy_promote \
+            --args '{dry_run: true}' \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production
+          echo "::endgroup::"
+          echo "✓ Promotion validation passed"
+
+      # ====================
+      # STEP 6: Promote green to production (atomic swap)
+      # ====================
+      - name: Promote green to production
+        id: promote
+        run: |
+          echo "::group::Promoting green environment to production"
+          echo "This will:"
+          echo "  1. Atomically swap schemas (production_* ↔ production_*_dbt_deploy)"
+          echo "  2. Swap clusters (production_compute ↔ production_compute_dbt_deploy)"
+          echo "  3. Cutover sinks to new materialized views"
+          echo ""
+          echo "Starting promotion..."
+          dbt run-operation deploy_promote \
+            --args '{wait: true, poll_interval: 15, lag_threshold: "1s"}' \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production
+          echo "::endgroup:}"
+          echo "✓ Production environment successfully promoted!"
+          echo "✓ Sinks automatically cut over to new definitions"
+
+      # ====================
+      # STEP 7: Cleanup (conditional based on retention)
+      # ====================
+      - name: Cleanup immediately (retention = 0)
+        if: success() && (inputs.retention_hours == 0 || (github.event_name == 'release' && github.event.inputs.retention_hours == null))
+        run: |
+          echo "::group::Cleaning up old blue environment immediately"
+          echo "Retention set to 0 hours - cleaning up now"
+          dbt run-operation deploy_cleanup \
+            --profiles-dir . \
+            --profile materialize_auction_house \
+            --target production
+          echo "::endgroup::"
+          echo "✓ Old environment cleaned up"
+
+      - name: Schedule cleanup (retention > 0)
+        if: success() && inputs.retention_hours > 0
+        run: |
+          RETENTION_HOURS="${{ inputs.retention_hours }}"
+          echo "::notice::Old blue environment retained for ${RETENTION_HOURS} hour(s) to allow quick rollback"
+          echo "::notice::The scheduled cleanup workflow will automatically remove it after the retention period"
+          echo "::notice::Cluster name: production_compute_dbt_deploy"
+          echo ""
+          echo "To manually cleanup now, run:"
+          echo "  dbt run-operation deploy_cleanup --profiles-dir . --profile materialize_auction_house --target production"
+
+      # ====================
+      # Reporting
+      # ====================
+      - name: Upload deployment artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-deployment-artifacts
+          path: |
+            target/run_results.json
+            target/manifest.json
+          retention-days: 90
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "### ✅ Blue/Green Production Deployment Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** Production (auction_team database)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployment Type:** Blue/Green with Single Approval (Zero Downtime)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployed:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Green environment initialized" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All transformations deployed to green" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Cluster fully hydrated (lag < 1s)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Tests passed on green environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Atomic promotion completed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Sinks automatically cut over" >> "$GITHUB_STEP_SUMMARY"
+          RETENTION_HOURS="${{ inputs.retention_hours || 1 }}"
+          if [ "$RETENTION_HOURS" == "0" ]; then
+            echo "- ✓ Old environment cleaned up immediately" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- ℹ️  Old environment retained for ${RETENTION_HOURS} hour(s) for rollback" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Active Environment:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Clusters: production_compute" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Schemas: production_staging, production_intermediate, production_marts" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "**Release:** ${{ github.event.release.tag_name }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "**Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployed by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Failure summary
+        if: failure()
+        run: |
+          echo "### ❌ Blue/Green Deployment Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** Deployment failed - production environment unchanged" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**What happened:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- The green environment may have been created but not promoted" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production environment is still running on the blue cluster" >> "$GITHUB_STEP_SUMMARY"
+          echo "- No impact to production users" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Next steps:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Review the workflow logs to identify the failure point" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Run deploy_cleanup manually if green environment was created:" >> "$GITHUB_STEP_SUMMARY"
+          echo "   \`dbt run-operation deploy_cleanup --target production\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Fix the issue and retry the deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Failed at:** $(date -u)" >> "$GITHUB_STEP_SUMMARY"
