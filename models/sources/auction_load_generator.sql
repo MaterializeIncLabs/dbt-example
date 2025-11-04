@@ -6,7 +6,5 @@
     tags=['source']
 ) }}
 
-CREATE SOURCE {{ this }}
-IN CLUSTER sources
 FROM LOAD GENERATOR AUCTION (TICK INTERVAL '1s', AS OF 100000)
 FOR ALL TABLES
