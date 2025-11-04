@@ -245,6 +245,11 @@ else
     print_info "Transformations may already exist (continuing anyway)"
 fi
 
+# Wait for sources to start generating data
+print_test "Waiting for sources to generate initial data..."
+sleep 20
+print_pass "Initial data generation wait complete"
+
 # Create sinks in main environment (needed for promotion swap)
 print_test "Creating sinks in main environment (required for swap)..."
 if dbt run --selector sinks_only \
