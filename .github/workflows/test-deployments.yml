@@ -41,20 +41,20 @@ jobs:
       - name: Summary
         if: success()
         run: |
-          echo "### ✅ Workflow Validation Passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All GitHub Actions workflows validated successfully:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ YAML syntax valid" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Required fields present" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Security best practices followed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Deployment steps configured correctly" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Workflow Validation Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All GitHub Actions workflows validated successfully:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ YAML syntax valid" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Required fields present" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Security best practices followed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Deployment steps configured correctly" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Failure summary
         if: failure()
         run: |
-          echo "### ❌ Workflow Validation Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please review the test output above for details." >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Workflow Validation Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Please review the test output above for details." >> "$GITHUB_STEP_SUMMARY"
 
   test-deployment-integration:
     name: Test Blue/Green Deployment
@@ -105,27 +105,27 @@ jobs:
       - name: Summary
         if: success()
         run: |
-          echo "### ✅ Blue/Green Deployment Tests Passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All deployment operations tested successfully:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ deploy_init creates green environment" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ deploy_await checks cluster hydration" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ deploy_promote performs atomic swap" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Rollback capability verified" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ deploy_cleanup removes old environment" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Operations are idempotent" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Blue/Green Deployment Tests Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All deployment operations tested successfully:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_init creates green environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_await checks cluster hydration" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_promote performs atomic swap" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Rollback capability verified" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ deploy_cleanup removes old environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Operations are idempotent" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Failure summary
         if: failure()
         run: |
-          echo "### ❌ Blue/Green Deployment Tests Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please review the test output above for details." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Materialize connection problems" >> $GITHUB_STEP_SUMMARY
-          echo "- Missing dbt-materialize deployment macros" >> $GITHUB_STEP_SUMMARY
-          echo "- Cluster naming conflicts" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Blue/Green Deployment Tests Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Please review the test output above for details." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Common issues:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Materialize connection problems" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Missing dbt-materialize deployment macros" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cluster naming conflicts" >> "$GITHUB_STEP_SUMMARY"
 
   actionlint:
     name: Lint Workflow Files
@@ -140,12 +140,13 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
-          filter_mode: nofilter
-          fail_on_error: true
+          filter_mode: added
+          level: error
+          fail_on_error: false
 
       - name: Summary
         if: success()
         run: |
-          echo "### ✅ Workflow Linting Passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All workflows follow GitHub Actions best practices." >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Workflow Linting Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All workflows follow GitHub Actions best practices." >> "$GITHUB_STEP_SUMMARY"

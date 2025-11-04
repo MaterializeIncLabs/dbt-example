@@ -53,25 +53,25 @@ jobs:
       - name: Summary
         if: success()
         run: |
-          echo "### ✅ dbt CI Validation Passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Project parsing successful" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ All refs and sources validated" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ SQL syntax validated" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Model dependencies resolved" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Note:** This workflow validates project structure and SQL syntax." >> $GITHUB_STEP_SUMMARY
-          echo "Full integration tests with data run on the QA environment after merge." >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ dbt CI Validation Passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Project parsing successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All refs and sources validated" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ SQL syntax validated" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Model dependencies resolved" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Note:** This workflow validates project structure and SQL syntax." >> "$GITHUB_STEP_SUMMARY"
+          echo "Full integration tests with data run on the QA environment after merge." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Failure summary
         if: failure()
         run: |
-          echo "### ❌ dbt CI Validation Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Invalid SQL syntax" >> $GITHUB_STEP_SUMMARY
-          echo "- Missing or invalid ref() or source() references" >> $GITHUB_STEP_SUMMARY
-          echo "- Missing dependencies in packages.yml" >> $GITHUB_STEP_SUMMARY
-          echo "- Circular dependencies between models" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ dbt CI Validation Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Please check the workflow logs for details." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Common issues:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Invalid SQL syntax" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Missing or invalid ref() or source() references" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Missing dependencies in packages.yml" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Circular dependencies between models" >> "$GITHUB_STEP_SUMMARY"

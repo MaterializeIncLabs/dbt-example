@@ -201,51 +201,51 @@ jobs:
       - name: Deployment summary
         if: success()
         run: |
-          echo "### ✅ Blue/Green Production Deployment Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** Production (auction_team database)" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployment Type:** Blue/Green with Single Approval (Zero Downtime)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Green environment initialized" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ All transformations deployed to green" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Cluster fully hydrated (lag < 1s)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Tests passed on green environment" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Atomic promotion completed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Sinks automatically cut over" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Blue/Green Production Deployment Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** Production (auction_team database)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployment Type:** Blue/Green with Single Approval (Zero Downtime)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployed:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Green environment initialized" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All transformations deployed to green" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Cluster fully hydrated (lag < 1s)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Tests passed on green environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Atomic promotion completed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Sinks automatically cut over" >> "$GITHUB_STEP_SUMMARY"
           RETENTION_HOURS="${{ inputs.retention_hours || 1 }}"
           if [ "$RETENTION_HOURS" == "0" ]; then
-            echo "- ✓ Old environment cleaned up immediately" >> $GITHUB_STEP_SUMMARY
+            echo "- ✓ Old environment cleaned up immediately" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "- ℹ️  Old environment retained for ${RETENTION_HOURS} hour(s) for rollback" >> $GITHUB_STEP_SUMMARY
+            echo "- ℹ️  Old environment retained for ${RETENTION_HOURS} hour(s) for rollback" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Active Environment:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Clusters: production_compute" >> $GITHUB_STEP_SUMMARY
-          echo "- Schemas: production_staging, production_intermediate, production_marts" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Active Environment:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Clusters: production_compute" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Schemas: production_staging, production_intermediate, production_marts" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ github.event_name }}" == "release" ]; then
-            echo "**Release:** ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Release:** ${{ github.event.release.tag_name }}" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployed by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Failure summary
         if: failure()
         run: |
-          echo "### ❌ Blue/Green Deployment Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** Deployment failed - production environment unchanged" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**What happened:**" >> $GITHUB_STEP_SUMMARY
-          echo "- The green environment may have been created but not promoted" >> $GITHUB_STEP_SUMMARY
-          echo "- Production environment is still running on the blue cluster" >> $GITHUB_STEP_SUMMARY
-          echo "- No impact to production users" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review the workflow logs to identify the failure point" >> $GITHUB_STEP_SUMMARY
-          echo "2. Run deploy_cleanup manually if green environment was created:" >> $GITHUB_STEP_SUMMARY
-          echo "   \`dbt run-operation deploy_cleanup --target production\`" >> $GITHUB_STEP_SUMMARY
-          echo "3. Fix the issue and retry the deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Failed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Blue/Green Deployment Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** Deployment failed - production environment unchanged" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**What happened:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- The green environment may have been created but not promoted" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production environment is still running on the blue cluster" >> "$GITHUB_STEP_SUMMARY"
+          echo "- No impact to production users" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Next steps:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Review the workflow logs to identify the failure point" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Run deploy_cleanup manually if green environment was created:" >> "$GITHUB_STEP_SUMMARY"
+          echo "   \`dbt run-operation deploy_cleanup --target production\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Fix the issue and retry the deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Failed at:** $(date -u)" >> "$GITHUB_STEP_SUMMARY"

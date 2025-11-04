@@ -164,29 +164,29 @@ jobs:
 
       - name: Stage 1 summary
         run: |
-          echo "### ✅ Green Environment Ready for Promotion" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Green Environment:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Cluster: production_compute_dbt_deploy" >> $GITHUB_STEP_SUMMARY
-          echo "- Schemas: production_*_dbt_deploy" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Green environment initialized" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ All transformations deployed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Cluster fully hydrated (lag < 1s)" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Green Environment Ready for Promotion" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Green Environment:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cluster: production_compute_dbt_deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Schemas: production_*_dbt_deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Green environment initialized" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All transformations deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Cluster fully hydrated (lag < 1s)" >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ inputs.skip_tests }}" == "false" ]; then
-            echo "- ✓ Tests passed on green environment" >> $GITHUB_STEP_SUMMARY
+            echo "- ✓ Tests passed on green environment" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "- ⚠️  Tests skipped (as requested)" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚠️  Tests skipped (as requested)" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "- ✓ Promotion dry run validated" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next Step:**" >> $GITHUB_STEP_SUMMARY
-          echo "Review the test results and dry run output, then approve the promotion job to complete the deployment." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployment Info:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Triggered by: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Promotion dry run validated" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Next Step:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Review the test results and dry run output, then approve the promotion job to complete the deployment." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployment Info:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Triggered by: @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
 
   # ====================
   # STAGE 2: Promote Green to Production
@@ -285,51 +285,51 @@ jobs:
       - name: Deployment summary
         if: success()
         run: |
-          echo "### ✅ Blue/Green Production Deployment Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** Production (auction_team database)" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployment Type:** Blue/Green with Two-Stage Approval" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Green environment built and tested" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Atomic promotion completed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Sinks automatically cut over" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Blue/Green Production Deployment Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** Production (auction_team database)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployment Type:** Blue/Green with Two-Stage Approval" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployed:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Green environment built and tested" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Atomic promotion completed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Sinks automatically cut over" >> "$GITHUB_STEP_SUMMARY"
           RETENTION_HOURS="${{ inputs.retention_hours || 1 }}"
           if [ "$RETENTION_HOURS" == "0" ]; then
-            echo "- ✓ Old environment cleaned up immediately" >> $GITHUB_STEP_SUMMARY
+            echo "- ✓ Old environment cleaned up immediately" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "- ℹ️  Old environment retained for ${RETENTION_HOURS} hour(s) for rollback" >> $GITHUB_STEP_SUMMARY
+            echo "- ℹ️  Old environment retained for ${RETENTION_HOURS} hour(s) for rollback" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Active Environment:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Clusters: production_compute" >> $GITHUB_STEP_SUMMARY
-          echo "- Schemas: production_staging, production_intermediate, production_marts" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployment Info:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Deployed by: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Approved by: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Active Environment:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Clusters: production_compute" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Schemas: production_staging, production_intermediate, production_marts" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployment Info:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Deployed by: @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Approved by: @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Failure summary
         if: failure()
         run: |
-          echo "### ❌ Production Promotion Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** Promotion failed during atomic swap" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**What happened:**" >> $GITHUB_STEP_SUMMARY
-          echo "- The green environment was built and tested successfully" >> $GITHUB_STEP_SUMMARY
-          echo "- Promotion to production failed during the atomic swap" >> $GITHUB_STEP_SUMMARY
-          echo "- Production is likely still on the blue environment" >> $GITHUB_STEP_SUMMARY
-          echo "- Green environment (${{ needs.build-and-test-green.outputs.green_cluster }}) still exists" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review the promotion logs above to identify the failure" >> $GITHUB_STEP_SUMMARY
-          echo "2. Verify production state and connectivity" >> $GITHUB_STEP_SUMMARY
-          echo "3. Retry promotion or cleanup green environment:" >> $GITHUB_STEP_SUMMARY
-          echo "   \`dbt run-operation deploy_cleanup --target production\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Failed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Production Promotion Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** Promotion failed during atomic swap" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**What happened:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- The green environment was built and tested successfully" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Promotion to production failed during the atomic swap" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production is likely still on the blue environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Green environment (${{ needs.build-and-test-green.outputs.green_cluster }}) still exists" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Next steps:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Review the promotion logs above to identify the failure" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Verify production state and connectivity" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Retry promotion or cleanup green environment:" >> "$GITHUB_STEP_SUMMARY"
+          echo "   \`dbt run-operation deploy_cleanup --target production\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Failed at:** $(date -u)" >> "$GITHUB_STEP_SUMMARY"
 
   # ====================
   # Failure Cleanup (if stage 1 fails)
@@ -365,18 +365,18 @@ jobs:
 
       - name: Failure summary
         run: |
-          echo "### ❌ Green Environment Build Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** Deployment failed before promotion - production unchanged" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**What happened:**" >> $GITHUB_STEP_SUMMARY
-          echo "- The green environment build, test, or validation failed" >> $GITHUB_STEP_SUMMARY
-          echo "- Production environment is unchanged and still running normally" >> $GITHUB_STEP_SUMMARY
-          echo "- Attempted automatic cleanup of partial green environment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review the workflow logs to identify the failure point" >> $GITHUB_STEP_SUMMARY
-          echo "2. Verify cleanup completed successfully (check logs above)" >> $GITHUB_STEP_SUMMARY
-          echo "3. Fix the issue and retry the deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Failed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Green Environment Build Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** Deployment failed before promotion - production unchanged" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**What happened:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- The green environment build, test, or validation failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Production environment is unchanged and still running normally" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Attempted automatic cleanup of partial green environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Next steps:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Review the workflow logs to identify the failure point" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Verify cleanup completed successfully (check logs above)" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Fix the issue and retry the deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Failed at:** $(date -u)" >> "$GITHUB_STEP_SUMMARY"

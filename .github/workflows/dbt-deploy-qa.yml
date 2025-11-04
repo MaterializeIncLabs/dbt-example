@@ -85,26 +85,26 @@ jobs:
       - name: Deployment summary
         if: success()
         run: |
-          echo "### ✅ QA Deployment Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** QA (auction_team database)" >> $GITHUB_STEP_SUMMARY
-          echo "**Schemas:** qa_staging, qa_intermediate, qa_marts" >> $GITHUB_STEP_SUMMARY
-          echo "**Cluster:** qa_compute" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed:**" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ Seed data loaded" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ All transformations deployed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ All tests passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ QA Deployment Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** QA (auction_team database)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Schemas:** qa_staging, qa_intermediate, qa_marts" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Cluster:** qa_compute" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deployed:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ Seed data loaded" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All transformations deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✓ All tests passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Triggered by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Failure summary
         if: failure()
         run: |
-          echo "### ❌ QA Deployment Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please review the workflow logs for details." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Failed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ QA Deployment Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Please review the workflow logs for details." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Failed at:** $(date -u)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"

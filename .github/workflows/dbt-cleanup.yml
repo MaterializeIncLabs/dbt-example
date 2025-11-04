@@ -114,13 +114,13 @@ jobs:
         run: |
           if [ "${{ steps.check.outputs.found }}" == "true" ]; then
             if [ "${{ inputs.dry_run }}" == "true" ]; then
-              echo "### 🔍 Cleanup Preview (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
-              echo "DRY RUN - No environments were actually deleted" >> $GITHUB_STEP_SUMMARY
+              echo "### 🔍 Cleanup Preview (${{ matrix.target }})" >> "$GITHUB_STEP_SUMMARY"
+              echo "DRY RUN - No environments were actually deleted" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "### ✅ Cleanup Completed (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
-              echo "Old deployment environments have been removed" >> $GITHUB_STEP_SUMMARY
+              echo "### ✅ Cleanup Completed (${{ matrix.target }})" >> "$GITHUB_STEP_SUMMARY"
+              echo "Old deployment environments have been removed" >> "$GITHUB_STEP_SUMMARY"
             fi
           else
-            echo "### ℹ️  No Cleanup Needed (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
-            echo "No old deployment environments found" >> $GITHUB_STEP_SUMMARY
+            echo "### ℹ️  No Cleanup Needed (${{ matrix.target }})" >> "$GITHUB_STEP_SUMMARY"
+            echo "No old deployment environments found" >> "$GITHUB_STEP_SUMMARY"
           fi
