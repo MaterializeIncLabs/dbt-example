@@ -306,7 +306,7 @@ if dbt run --selector transformations \
 else
     print_fail "Failed to deploy models to green"
     print_info "Error details:"
-    grep -A 3 "ERROR\|Database Error" /tmp/deploy_green.log | head -10
+    grep -B 2 -A 5 "ERROR\|Database Error" /tmp/deploy_green.log | head -30
 fi
 
 print_header "Test 3: Cluster Hydration Check"
