@@ -93,6 +93,64 @@ else
     exit 1
 fi
 
+# Create quickstart cluster if it doesn't exist (needed for transformations)
+print_test "Ensuring quickstart cluster exists as MANAGED..."
+cluster_exists=$(psql "postgresql://materialize@localhost:6875/materialize" -tAc "SELECT COUNT(*) FROM mz_clusters WHERE name = 'quickstart'")
+if [ "$cluster_exists" -eq 0 ]; then
+    if psql "postgresql://materialize@localhost:6875/materialize" \
+        -c "CREATE CLUSTER quickstart SIZE = '25cc', REPLICATION FACTOR = 1" > /dev/null 2>&1; then
+        print_pass "Quickstart cluster created (managed)"
+    else
+        print_fail "Failed to create quickstart cluster"
+        exit 1
+    fi
+else
+    # Check if it's managed
+    is_managed=$(psql "postgresql://materialize@localhost:6875/materialize" -tAc "SELECT managed FROM mz_clusters WHERE name = 'quickstart'")
+    if [ "$is_managed" = "t" ]; then
+        print_pass "Quickstart cluster already exists (managed)"
+    else
+        print_info "Quickstart cluster exists but is unmanaged, dropping and recreating..."
+        psql "postgresql://materialize@localhost:6875/materialize" -c "DROP CLUSTER quickstart CASCADE" > /dev/null 2>&1
+        if psql "postgresql://materialize@localhost:6875/materialize" \
+            -c "CREATE CLUSTER quickstart SIZE = '25cc', REPLICATION FACTOR = 1" > /dev/null 2>&1; then
+            print_pass "Quickstart cluster recreated as managed"
+        else
+            print_fail "Failed to recreate quickstart cluster"
+            exit 1
+        fi
+    fi
+fi
+
+# Create sources cluster if it doesn't exist (needed for load generator)
+print_test "Ensuring sources cluster exists as MANAGED..."
+cluster_exists=$(psql "postgresql://materialize@localhost:6875/materialize" -tAc "SELECT COUNT(*) FROM mz_clusters WHERE name = 'sources'")
+if [ "$cluster_exists" -eq 0 ]; then
+    if psql "postgresql://materialize@localhost:6875/materialize" \
+        -c "CREATE CLUSTER sources SIZE = '25cc', REPLICATION FACTOR = 1" > /dev/null 2>&1; then
+        print_pass "Sources cluster created (managed)"
+    else
+        print_fail "Failed to create sources cluster"
+        exit 1
+    fi
+else
+    # Check if it's managed
+    is_managed=$(psql "postgresql://materialize@localhost:6875/materialize" -tAc "SELECT managed FROM mz_clusters WHERE name = 'sources'")
+    if [ "$is_managed" = "t" ]; then
+        print_pass "Sources cluster already exists (managed)"
+    else
+        print_info "Sources cluster exists but is unmanaged, dropping and recreating..."
+        psql "postgresql://materialize@localhost:6875/materialize" -c "DROP CLUSTER sources CASCADE" > /dev/null 2>&1
+        if psql "postgresql://materialize@localhost:6875/materialize" \
+            -c "CREATE CLUSTER sources SIZE = '25cc', REPLICATION FACTOR = 1" > /dev/null 2>&1; then
+            print_pass "Sources cluster recreated as managed"
+        else
+            print_fail "Failed to recreate sources cluster"
+            exit 1
+        fi
+    fi
+fi
+
 # Create compute cluster if it doesn't exist (needed for deployment)
 print_test "Ensuring compute cluster exists as MANAGED..."
 cluster_exists=$(psql "postgresql://materialize@localhost:6875/materialize" -tAc "SELECT COUNT(*) FROM mz_clusters WHERE name = 'compute'")
@@ -122,15 +180,47 @@ else
     fi
 fi
 
+# Create sinks cluster if it doesn't exist (needed for Kafka sinks)
+print_test "Ensuring sinks cluster exists as MANAGED..."
+cluster_exists=$(psql "postgresql://materialize@localhost:6875/materialize" -tAc "SELECT COUNT(*) FROM mz_clusters WHERE name = 'sinks'")
+if [ "$cluster_exists" -eq 0 ]; then
+    if psql "postgresql://materialize@localhost:6875/materialize" \
+        -c "CREATE CLUSTER sinks SIZE = '25cc', REPLICATION FACTOR = 1" > /dev/null 2>&1; then
+        print_pass "Sinks cluster created (managed)"
+    else
+        print_fail "Failed to create sinks cluster"
+        exit 1
+    fi
+else
+    # Check if it's managed
+    is_managed=$(psql "postgresql://materialize@localhost:6875/materialize" -tAc "SELECT managed FROM mz_clusters WHERE name = 'sinks'")
+    if [ "$is_managed" = "t" ]; then
+        print_pass "Sinks cluster already exists (managed)"
+    else
+        print_info "Sinks cluster exists but is unmanaged, dropping and recreating..."
+        psql "postgresql://materialize@localhost:6875/materialize" -c "DROP CLUSTER sinks CASCADE" > /dev/null 2>&1
+        if psql "postgresql://materialize@localhost:6875/materialize" \
+            -c "CREATE CLUSTER sinks SIZE = '25cc', REPLICATION FACTOR = 1" > /dev/null 2>&1; then
+            print_pass "Sinks cluster recreated as managed"
+        else
+            print_fail "Failed to recreate sinks cluster"
+            exit 1
+        fi
+    fi
+fi
+
 # Set up sources in main environment (needed for transformations to reference)
 print_test "Setting up sources in main environment (required for deployment)..."
 if dbt run --selector sources_only \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" > /dev/null 2>&1; then
+    --target "$DBT_TARGET" > /tmp/sources_setup.log 2>&1; then
     print_pass "Sources created in main environment"
 else
-    print_info "Sources may already exist or failed to create (continuing anyway)"
+    print_fail "Failed to create sources"
+    print_info "Error details:"
+    grep -A 3 "ERROR\|Database Error" /tmp/sources_setup.log | head -10
+    exit 1
 fi
 
 # Load seed data to main environment
@@ -206,13 +296,12 @@ if dbt run --selector transformations \
     --vars 'deploy: True' \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" \
-    --debug > /tmp/deploy_green.log 2>&1; then
+    --target "$DBT_TARGET" > /tmp/deploy_green.log 2>&1; then
     print_pass "Models deployed to green environment"
 else
     print_fail "Failed to deploy models to green"
     print_info "Error details:"
-    grep -B 2 -A 5 "ERROR\|Database Error\|Compilation Error" /tmp/deploy_green.log | head -50
+    grep -A 3 "ERROR\|Database Error" /tmp/deploy_green.log | head -10
 fi
 
 print_header "Test 3: Cluster Hydration Check"
@@ -223,13 +312,10 @@ if timeout 30 dbt run-operation deploy_await \
     --args '{poll_interval: 5, lag_threshold: "10s"}' \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" \
-    --debug > /tmp/deploy_await.log 2>&1; then
+    --target "$DBT_TARGET" > /dev/null 2>&1; then
     print_pass "deploy_await completed successfully"
 else
     print_fail "deploy_await timed out or failed (this is acceptable for local testing)"
-    print_info "Error details:"
-    grep -B 2 -A 5 "ERROR\|Error\|CRITICAL\|lag" /tmp/deploy_await.log | head -30
 fi
 
 print_header "Test 4: Dry Run Promotion"
@@ -239,8 +325,7 @@ if dbt run-operation deploy_promote \
     --args '{dry_run: true}' \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" \
-    --debug > /tmp/deploy_promote_dry_run.log 2>&1; then
+    --target "$DBT_TARGET" > /tmp/deploy_promote_dry_run.log 2>&1; then
     print_pass "Dry run executed successfully"
 
     # Check that dry run output contains expected commands
@@ -251,8 +336,6 @@ if dbt run-operation deploy_promote \
     fi
 else
     print_fail "Dry run failed"
-    print_info "Error details:"
-    grep -B 2 -A 5 "ERROR\|Error\|CRITICAL" /tmp/deploy_promote_dry_run.log | head -50
 fi
 
 print_header "Test 5: Actual Promotion (Atomic Swap)"
@@ -277,8 +360,7 @@ green_cluster_after=""
 if dbt run-operation deploy_promote \
     --profiles-dir "$PROFILES_DIR" \
     --profile "$DBT_PROFILE" \
-    --target "$DBT_TARGET" \
-    --debug > /tmp/deploy_promote.log 2>&1; then
+    --target "$DBT_TARGET" > /tmp/deploy_promote.log 2>&1; then
     print_pass "deploy_promote executed successfully"
 
     # Verify swap occurred (old blue becomes green, old green becomes blue)
@@ -293,7 +375,7 @@ if dbt run-operation deploy_promote \
 else
     print_fail "deploy_promote failed"
     print_info "Error details:"
-    grep -B 2 -A 5 "ERROR\|Error\|CRITICAL" /tmp/deploy_promote.log | head -50
+    grep -A 3 "Error" /tmp/deploy_promote.log | head -10
 fi
 
 print_header "Test 6: Rollback Test"
@@ -304,13 +386,12 @@ if [ -n "$green_cluster_after" ] && [ "$green_cluster_after" -eq 1 ]; then
     if dbt run-operation deploy_promote \
         --profiles-dir "$PROFILES_DIR" \
         --profile "$DBT_PROFILE" \
-        --target "$DBT_TARGET" \
-        --debug > /tmp/deploy_rollback.log 2>&1; then
+        --target "$DBT_TARGET" > /tmp/deploy_rollback.log 2>&1; then
         print_pass "Rollback (second deploy_promote) executed successfully"
     else
         print_fail "Rollback failed"
         print_info "Error details:"
-        grep -B 2 -A 5 "ERROR\|Error\|CRITICAL" /tmp/deploy_rollback.log | head -50
+        grep -A 3 "Error" /tmp/deploy_rollback.log | head -10
     fi
 else
     print_info "Skipping rollback test (promotion didn't complete)"
